@@ -248,6 +248,14 @@ button {
   margin: 0;
 }
 
+.prompt-word.sentence {
+  font-size: clamp(1.05rem, 3vw, 1.4rem);
+  font-weight: 500;
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
 .prompt-context {
   margin: 14px auto 0;
   max-width: 480px;
