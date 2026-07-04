@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet Français — Practica francés A1-B2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="notebook" id="notebook">
+
+  <div class="page">
+
+    <header class="page-header">
+      <div class="header-text">
+        <p class="eyebrow">Carnet de voyage lingüístico</p>
+        <h1 class="title">Carnet Français</h1>
+        <p class="subtitle">Del <em>bonjour</em> al subjuntivo — un ejercicio a la vez.</p>
+      </div>
+      <div class="score-block" aria-live="polite">
+        <div class="score-item">
+          <span class="score-number" id="scoreCorrect">0</span>
+          <span class="score-label">Aciertos</span>
+        </div>
+        <div class="score-divider" aria-hidden="true"></div>
+        <div class="score-item">
+          <span class="score-number" id="scoreStreak">0</span>
+          <span class="score-label">Racha</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="mode-strip" id="modeStrip">
+      <span class="mode-pill" data-mode="es-fr">🇪🇸→🇫🇷 Traducción</span>
+      <span class="mode-pill" data-mode="fr-es">🇫🇷→🇪🇸 Traducción + voz</span>
+      <span class="mode-pill" data-mode="conjugate">✎ Conjugación</span>
+    </div>
+
+    <!-- Exercise card -->
+    <main class="card" id="exerciseCard">
+
+      <div class="card-top">
+        <span class="level-flag" id="itemLevel">A1</span>
+        <span class="tense-flag" id="itemTense" hidden></span>
+      </div>
+
+      <div class="prompt" id="promptZone">
+        <p class="prompt-hint" id="promptHint">Traduce al francés</p>
+        <p class="prompt-word" id="promptWord">bonjour</p>
+        <p class="prompt-context" id="promptContext" hidden></p>
+      </div>
+
+      <form class="answer-form" id="answerForm" autocomplete="off">
+        <div class="input-row">
+          <input
+            type="text"
+            id="answerInput"
+            class="answer-input"
+            placeholder="Escribe tu respuesta aquí…"
+            aria-label="Tu respuesta"
+          >
+          <button type="button" class="icon-btn mic-btn" id="micBtn" title="Escuchar pronunciación / grabar" hidden>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/>
+              <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H9a1 1 0 0 0 0 2h6a1 1 0 0 0 0-2h-2v-2.08A7 7 0 0 0 19 11z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn">Comprobar</button>
+      </form>
+
+      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+
+      <!-- Passport-stamp style feedback -->
+      <div class="stamp stamp-correct" id="stampCorrect" hidden>Correct !</div>
+      <div class="stamp stamp-wrong" id="stampWrong" hidden>Réessaie</div>
+
+      <div class="card-actions">
+        <button type="button" class="btn-ghost" id="listenBtn" hidden>
+          🔊 Escuchar pronunciación
+        </button>
+        <button type="button" class="btn-next" id="nextBtn" hidden>Siguiente ejercicio →</button>
+      </div>
+
+    </main>
+
+    <footer class="page-footer">
+      <p id="supportNote"></p>
+    </footer>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
