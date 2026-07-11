@@ -193,6 +193,42 @@ button {
 }
 
 /* ============================================================
+   DATA SOURCE BAR (carga del Excel local)
+   ============================================================ */
+.data-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--paper-dim);
+  border: 1px dashed var(--paper-line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 22px;
+}
+
+.data-source-status {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.data-source-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* ============================================================
    EXERCISE CARD
    ============================================================ */
 .card {
