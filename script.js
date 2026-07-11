@@ -7,8 +7,10 @@
    1. BASE DE DATOS
    --------------------------------------------------------- */
 
-// Vocabulario compartido por los modos "ES→FR" y "FR→ES"
-const VOCABULARY = [
+// Estas listas son el banco de RESPALDO (por si el Excel no carga, por ejemplo
+// al abrir el archivo con doble clic en vez de por un servidor/GitHub Pages).
+// Si datos.xlsx se carga correctamente, estas listas se REEMPLAZAN por su contenido.
+let VOCABULARY = [
   // ---------- A1 ----------
   { es: "hola",            fr: "bonjour",       level: "A1", type: "conector" },
   { es: "gracias",         fr: "merci",         level: "A1", type: "conector" },
@@ -252,11 +254,38 @@ const VOCABULARY = [
   { es: "después de",      fr: "après",         level: "A2", type: "preposición" },
   { es: "durante",         fr: "pendant",       level: "B1", type: "preposición" },
   { es: "gracias a",       fr: "grâce à",       level: "B1", type: "preposición" },
+
+  // ---------- Partes de la casa ----------
+  { es: "la cocina (habitación)", fr: "la cuisine",   level: "A1", type: "sustantivo" },
+  { es: "el salón",        fr: "le salon",      level: "A1", type: "sustantivo" },
+  { es: "el dormitorio",   fr: "la chambre",    level: "A1", type: "sustantivo" },
+  { es: "el baño",         fr: "la salle de bains", level: "A1", type: "sustantivo" },
+  { es: "el jardín",       fr: "le jardin",     level: "A1", type: "sustantivo" },
+  { es: "el garaje",       fr: "le garage",     level: "A2", type: "sustantivo" },
+  { es: "el sótano",       fr: "la cave",       level: "A2", type: "sustantivo" },
+  { es: "el techo",        fr: "le toit",       level: "A2", type: "sustantivo" },
+  { es: "la pared",        fr: "le mur",        level: "A1", type: "sustantivo" },
+  { es: "el suelo",        fr: "le sol",        level: "A1", type: "sustantivo" },
+  { es: "la escalera",     fr: "l'escalier",    level: "A2", type: "sustantivo" },
+  { es: "el balcón",       fr: "le balcon",     level: "A2", type: "sustantivo" },
+  { es: "el pasillo",      fr: "le couloir",    level: "A2", type: "sustantivo" },
+
+  // ---------- Muebles y electrodomésticos ----------
+  { es: "la silla",        fr: "la chaise",     level: "A1", type: "sustantivo" },
+  { es: "la cama",         fr: "le lit",        level: "A1", type: "sustantivo" },
+  { es: "el sofá",         fr: "le canapé",     level: "A1", type: "sustantivo" },
+  { es: "el armario",      fr: "l'armoire",     level: "A1", type: "sustantivo" },
+  { es: "la estantería",   fr: "l'étagère",     level: "A2", type: "sustantivo" },
+  { es: "la lámpara",      fr: "la lampe",      level: "A1", type: "sustantivo" },
+  { es: "el espejo",       fr: "le miroir",     level: "A2", type: "sustantivo" },
+  { es: "la nevera",       fr: "le réfrigérateur", level: "A2", type: "sustantivo" },
+  { es: "la cocina (aparato)", fr: "la cuisinière", level: "A2", type: "sustantivo" },
+  { es: "el fregadero",    fr: "l'évier",       level: "A2", type: "sustantivo" },
 ];
 
 // Frases para completar conjugaciones — cubre los 11 tiempos solicitados
 // y varía las personas (je, tu, il/elle, nous, vous, ils/elles)
-const CONJUGATIONS = [
+let CONJUGATIONS = [
   // ---------- Présent ----------
   {
     level: "A1", tense: "Présent", infinitive: "manger",
@@ -527,7 +556,7 @@ const CONJUGATIONS = [
 ];
 
 // Frases completas para el modo de traducción de oraciones (ES<->FR)
-const PHRASES = [
+let PHRASES = [
   { level: "A1", es: "Me llamo Marie y vivo en París.",
     fr: "Je m'appelle Marie et j'habite à Paris." },
   { level: "A1", es: "¿Qué hora es?",
@@ -595,6 +624,9 @@ const el = {
   scoreCorrect: document.getElementById("scoreCorrect"),
   scoreStreak: document.getElementById("scoreStreak"),
   supportNote: document.getElementById("supportNote"),
+  dataSourceStatus: document.getElementById("dataSourceStatus"),
+  excelFileInput: document.getElementById("excelFileInput"),
+  resetDataBtn: document.getElementById("resetDataBtn"),
 };
 
 /* ---------------------------------------------------------
@@ -896,11 +928,197 @@ el.listenBtn.addEventListener("click", () => {
 el.nextBtn.addEventListener("click", nextExercise);
 
 /* ---------------------------------------------------------
+   0-bis. CARGA DE DATOS (datos.xlsx del servidor, o tu Excel local)
+   --------------------------------------------------------- */
+
+const STORAGE_KEY = "carnetFrancais.customData.v1";
+
+// Convierte una fila de la hoja "Vocabulario" a nuestro formato interno
+function rowToVocab(row) {
+  return {
+    es: String(row.espanol ?? "").trim(),
+    fr: String(row.frances ?? "").trim(),
+    level: String(row.nivel ?? "").trim().toUpperCase(),
+    type: String(row.tipo ?? "").trim().toLowerCase(),
+  };
+}
+
+function rowToConjugation(row) {
+  return {
+    level: String(row.nivel ?? "").trim().toUpperCase(),
+    tense: String(row.tiempo_verbal ?? "").trim(),
+    infinitive: String(row.infinitivo ?? "").trim(),
+    before: String(row.antes_del_hueco ?? "").trim(),
+    after: String(row.despues_del_hueco ?? "").trim(),
+    answer: String(row.respuesta_correcta ?? "").trim(),
+    translation: String(row.traduccion ?? "").trim(),
+  };
+}
+
+function rowToPhrase(row) {
+  return {
+    level: String(row.nivel ?? "").trim().toUpperCase(),
+    es: String(row.espanol ?? "").trim(),
+    fr: String(row.frances ?? "").trim(),
+  };
+}
+
+// Extrae {vocab, conj, phrases} de un workbook de SheetJS ya leído
+function workbookToData(workbook) {
+  const vocabSheet = workbook.Sheets["Vocabulario"];
+  const conjSheet = workbook.Sheets["Conjugaciones"];
+  const phraseSheet = workbook.Sheets["Frases"];
+
+  const vocab = vocabSheet
+    ? XLSX.utils.sheet_to_json(vocabSheet).map(rowToVocab).filter((v) => v.es && v.fr)
+    : [];
+  const conj = conjSheet
+    ? XLSX.utils.sheet_to_json(conjSheet).map(rowToConjugation).filter((c) => c.answer)
+    : [];
+  const phrases = phraseSheet
+    ? XLSX.utils.sheet_to_json(phraseSheet).map(rowToPhrase).filter((p) => p.es && p.fr)
+    : [];
+
+  return { vocab, conj, phrases };
+}
+
+function applyData({ vocab, conj, phrases }) {
+  if (vocab.length) VOCABULARY = vocab;
+  if (conj.length) CONJUGATIONS = conj;
+  if (phrases.length) PHRASES = phrases;
+}
+
+/* ----- localStorage: recuerda el último Excel que cargaste a mano ----- */
+function saveCustomDataToStorage(data, filename) {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...data, filename, savedAt: new Date().toISOString() })
+    );
+  } catch (err) {
+    console.warn("No se pudo guardar en localStorage:", err);
+  }
+}
+
+function loadCustomDataFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn("No se pudo leer localStorage:", err);
+    return null;
+  }
+}
+
+function clearCustomDataFromStorage() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+/* ----- Origen 1: datos.xlsx servido junto a la app (GitHub Pages) ----- */
+async function loadExcelFromServer() {
+  if (typeof XLSX === "undefined") return false;
+  try {
+    const response = await fetch("datos.xlsx");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const buffer = await response.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const data = workbookToData(workbook);
+    applyData(data);
+    return true;
+  } catch (err) {
+    console.warn("No se pudo cargar datos.xlsx del servidor:", err);
+    return false;
+  }
+}
+
+/* ----- Origen 2: un Excel elegido a mano desde tu ordenador ----- */
+function loadExcelFromLocalFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const workbook = XLSX.read(e.target.result, { type: "array" });
+        const data = workbookToData(workbook);
+        if (!data.vocab.length && !data.conj.length && !data.phrases.length) {
+          reject(new Error("El Excel no tiene datos reconocibles (revisa los nombres de hoja/columnas)."));
+          return;
+        }
+        applyData(data);
+        saveCustomDataToStorage(data, file.name);
+        resolve(data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function formatSavedAt(isoString) {
+  try {
+    return new Date(isoString).toLocaleString("es-ES", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function updateDataSourceStatus(mode, extra) {
+  el.resetDataBtn.hidden = mode !== "local";
+  if (mode === "local") {
+    el.dataSourceStatus.textContent = `📂 Usando tu Excel local "${extra.filename}" (cargado el ${formatSavedAt(extra.savedAt)}).`;
+  } else if (mode === "server") {
+    el.dataSourceStatus.textContent = "☁️ Usando datos.xlsx publicado en la web.";
+  } else {
+    el.dataSourceStatus.textContent = "📦 Usando el banco de datos incorporado en la app.";
+  }
+}
+
+/* ----- Eventos del selector de Excel local ----- */
+el.excelFileInput.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  el.dataSourceStatus.textContent = "Leyendo tu archivo…";
+  try {
+    const data = await loadExcelFromLocalFile(file);
+    updateDataSourceStatus("local", { filename: file.name, savedAt: new Date().toISOString() });
+    nextExercise();
+  } catch (err) {
+    el.dataSourceStatus.textContent = `⚠️ ${err.message}`;
+  }
+  e.target.value = ""; // permite volver a elegir el mismo archivo tras editarlo
+});
+
+el.resetDataBtn.addEventListener("click", () => {
+  clearCustomDataFromStorage();
+  location.reload();
+});
+
+/* ---------------------------------------------------------
    10. INICIALIZACIÓN
    --------------------------------------------------------- */
-function init() {
+async function init() {
+  el.hint.textContent = "Cargando el banco de palabras…";
+  el.word.textContent = "📖";
+  el.form.hidden = true;
+
+  // Prioridad: 1) tu último Excel local guardado, 2) datos.xlsx del servidor, 3) datos incorporados
+  const stored = loadCustomDataFromStorage();
+  if (stored && (stored.vocab?.length || stored.conj?.length || stored.phrases?.length)) {
+    applyData(stored);
+    updateDataSourceStatus("local", { filename: stored.filename, savedAt: stored.savedAt });
+  } else {
+    const loadedFromServer = await loadExcelFromServer();
+    updateDataSourceStatus(loadedFromServer ? "server" : "default");
+  }
+
+  el.form.hidden = false;
   el.supportNote.textContent =
     "Carnet Français · practica de la mano de la Web Speech API — compatible con Safari y Chrome.";
+
   nextExercise();
 }
 
