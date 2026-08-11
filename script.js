@@ -602,6 +602,14 @@ const state = {
   score: { correct: 0, streak: 0 },
 };
 
+const matchState = {
+  round: [],           // ítems de vocabulario de la ronda actual
+  matchedIds: new Set(),
+  selectedEs: null,     // { id, el }
+  selectedFr: null,     // { id, el }
+  locked: false,        // evita clics mientras se resuelve un intento
+};
+
 /* ---------------------------------------------------------
    3. REFERENCIAS AL DOM
    --------------------------------------------------------- */
@@ -627,6 +635,13 @@ const el = {
   dataSourceStatus: document.getElementById("dataSourceStatus"),
   excelFileInput: document.getElementById("excelFileInput"),
   resetDataBtn: document.getElementById("resetDataBtn"),
+  viewTabs: document.querySelectorAll(".view-tab"),
+  practiceView: document.getElementById("practiceView"),
+  matchView: document.getElementById("matchView"),
+  matchColEs: document.getElementById("matchColEs"),
+  matchColFr: document.getElementById("matchColFr"),
+  matchProgress: document.getElementById("matchProgress"),
+  matchNextRoundBtn: document.getElementById("matchNextRoundBtn"),
 };
 
 /* ---------------------------------------------------------
@@ -928,6 +943,234 @@ el.listenBtn.addEventListener("click", () => {
 el.nextBtn.addEventListener("click", nextExercise);
 
 /* ---------------------------------------------------------
+   9-bis. MODO "EMPAREJAR" (matching pairs, tipo Duolingo)
+   Las palabras en las que fallas pesan más y salen más a menudo;
+   las que aciertas repetidamente pesan menos y salen con menor frecuencia.
+   --------------------------------------------------------- */
+
+const MATCH_STORAGE_KEY = "carnetFrancais.matchStats.v1";
+const MATCH_ROUND_SIZE = 5;
+
+let matchStats = {}; // { "es::fr": { correct: n, wrong: n } }
+
+function itemKey(item) {
+  return `${item.es}::${item.fr}`;
+}
+
+function loadMatchStats() {
+  try {
+    const raw = localStorage.getItem(MATCH_STORAGE_KEY);
+    matchStats = raw ? JSON.parse(raw) : {};
+  } catch {
+    matchStats = {};
+  }
+}
+
+function saveMatchStats() {
+  try {
+    localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(matchStats));
+  } catch (err) {
+    console.warn("No se pudo guardar el progreso de Emparejar:", err);
+  }
+}
+
+function getMatchWeight(item) {
+  const s = matchStats[itemKey(item)] || { correct: 0, wrong: 0 };
+  // Más fallos → pesa más (sale más). Más aciertos → pesa menos (sale menos).
+  return Math.max(0.15, 1 + s.wrong * 2.2 - Math.min(s.correct, 6) * 0.35);
+}
+
+function recordMatchResult(item, wasCorrect) {
+  const key = itemKey(item);
+  const s = matchStats[key] || { correct: 0, wrong: 0 };
+  if (wasCorrect) s.correct += 1;
+  else s.wrong += 1;
+  matchStats[key] = s;
+  saveMatchStats();
+}
+
+// Evita mostrar dos filas con el mismo español o el mismo francés en la misma ronda
+function uniqueVocabPool() {
+  const seenEs = new Set();
+  const seenFr = new Set();
+  return VOCABULARY.filter((item) => {
+    if (!item.es || !item.fr) return false;
+    if (seenEs.has(item.es) || seenFr.has(item.fr)) return false;
+    seenEs.add(item.es);
+    seenFr.add(item.fr);
+    return true;
+  });
+}
+
+function weightedSampleWithoutReplacement(pool, n) {
+  const items = pool.slice();
+  const chosen = [];
+  for (let i = 0; i < n && items.length; i++) {
+    const weights = items.map(getMatchWeight);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let idx = 0;
+    for (; idx < weights.length; idx++) {
+      r -= weights[idx];
+      if (r <= 0) break;
+    }
+    idx = Math.min(idx, items.length - 1);
+    chosen.push(items[idx]);
+    items.splice(idx, 1);
+  }
+  return chosen;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startMatchRound() {
+  const pool = uniqueVocabPool();
+  const size = Math.min(MATCH_ROUND_SIZE, pool.length);
+  const round = weightedSampleWithoutReplacement(pool, size).map((item, i) => ({
+    id: `pair-${i}`,
+    item,
+  }));
+
+  matchState.round = round;
+  matchState.matchedIds = new Set();
+  matchState.selectedEs = null;
+  matchState.selectedFr = null;
+  matchState.locked = false;
+
+  renderMatchRound();
+}
+
+function renderMatchRound() {
+  el.matchColEs.innerHTML = "";
+  el.matchColFr.innerHTML = "";
+  el.matchNextRoundBtn.hidden = true;
+
+  const esOrder = shuffle(matchState.round);
+  const frOrder = shuffle(matchState.round);
+
+  esOrder.forEach(({ id, item }) => {
+    el.matchColEs.appendChild(createMatchButton(id, item.es, "es"));
+  });
+  frOrder.forEach(({ id, item }) => {
+    el.matchColFr.appendChild(createMatchButton(id, item.fr, "fr"));
+  });
+
+  updateMatchProgress();
+}
+
+function createMatchButton(pairId, label, side) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "match-card-btn";
+  btn.textContent = label;
+  btn.dataset.pairId = pairId;
+  btn.dataset.side = side;
+  btn.addEventListener("click", () => handleMatchCardClick(btn, pairId, side));
+  return btn;
+}
+
+function updateMatchProgress() {
+  el.matchProgress.textContent = `${matchState.matchedIds.size} / ${matchState.round.length} parejas`;
+}
+
+function handleMatchCardClick(btn, pairId, side) {
+  if (matchState.locked) return;
+  if (matchState.matchedIds.has(pairId)) return;
+
+  const selectionKey = side === "es" ? "selectedEs" : "selectedFr";
+  const otherKey = side === "es" ? "selectedFr" : "selectedEs";
+
+  // Si se vuelve a tocar la misma carta, deselecciona
+  if (matchState[selectionKey] && matchState[selectionKey].btn === btn) {
+    btn.classList.remove("selected");
+    matchState[selectionKey] = null;
+    return;
+  }
+
+  // Cambia de selección dentro de la misma columna
+  if (matchState[selectionKey]) {
+    matchState[selectionKey].btn.classList.remove("selected");
+  }
+  btn.classList.add("selected");
+  matchState[selectionKey] = { pairId, btn };
+
+  const other = matchState[otherKey];
+  if (!other) return; // esperamos a que toque la otra columna
+
+  // Ya hay una carta seleccionada en cada columna: comprobamos
+  matchState.locked = true;
+  const isCorrect = other.pairId === pairId;
+  const roundItem = matchState.round.find((r) => r.id === pairId)?.item;
+
+  if (isCorrect) {
+    btn.classList.remove("selected");
+    other.btn.classList.remove("selected");
+    btn.classList.add("correct");
+    other.btn.classList.add("correct");
+    btn.disabled = true;
+    other.btn.disabled = true;
+
+    matchState.matchedIds.add(pairId);
+    if (roundItem) recordMatchResult(roundItem, true);
+
+    state.score.correct += 1;
+    state.score.streak += 1;
+    updateScore();
+
+    matchState.selectedEs = null;
+    matchState.selectedFr = null;
+    matchState.locked = false;
+    updateMatchProgress();
+
+    if (matchState.matchedIds.size === matchState.round.length) {
+      el.matchNextRoundBtn.hidden = false;
+    }
+  } else {
+    btn.classList.add("wrong");
+    other.btn.classList.add("wrong");
+    if (roundItem) recordMatchResult(roundItem, false);
+
+    state.score.streak = 0;
+    updateScore();
+
+    setTimeout(() => {
+      btn.classList.remove("selected", "wrong");
+      other.btn.classList.remove("selected", "wrong");
+      matchState.selectedEs = null;
+      matchState.selectedFr = null;
+      matchState.locked = false;
+    }, 550);
+  }
+}
+
+el.matchNextRoundBtn.addEventListener("click", startMatchRound);
+
+/* ---------------------------------------------------------
+   9-ter. CAMBIO DE VISTA (Practicar ↔ Emparejar)
+   --------------------------------------------------------- */
+el.viewTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    el.viewTabs.forEach((t) => t.setAttribute("aria-pressed", "false"));
+    tab.setAttribute("aria-pressed", "true");
+
+    const view = tab.dataset.view;
+    el.practiceView.hidden = view !== "practice";
+    el.matchView.hidden = view !== "match";
+
+    if (view === "match" && matchState.round.length === 0) {
+      startMatchRound();
+    }
+  });
+});
+
+/* ---------------------------------------------------------
    0-bis. CARGA DE DATOS (datos.xlsx del servidor, o tu Excel local)
    --------------------------------------------------------- */
 
@@ -1104,6 +1347,8 @@ async function init() {
   el.hint.textContent = "Cargando el banco de palabras…";
   el.word.textContent = "📖";
   el.form.hidden = true;
+
+  loadMatchStats();
 
   // Prioridad: 1) tu último Excel local guardado, 2) datos.xlsx del servidor, 3) datos incorporados
   const stored = loadCustomDataFromStorage();
