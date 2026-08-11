@@ -133,6 +133,137 @@ button {
 }
 .subtitle em { color: var(--red); font-style: italic; }
 
+/* ============================================================
+   VIEW TABS (Practicar / Emparejar)
+   ============================================================ */
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.view-tab {
+  flex: 1;
+  border: 1.5px solid var(--paper-line);
+  background: var(--paper-dim);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.view-tab[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.view-tab:hover:not([aria-pressed="true"]) {
+  background: var(--blue-dim);
+  color: var(--blue);
+}
+
+/* ============================================================
+   MATCHING GAME ("Emparejar")
+   ============================================================ */
+.match-card { padding-top: 22px; }
+
+.match-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.match-progress {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--gold);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.match-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+}
+
+.match-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.match-card-btn {
+  border: 1.5px solid var(--paper-line);
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 14px 12px;
+  border-radius: 10px;
+  text-align: center;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.08s ease, opacity 0.3s ease;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-card-btn:hover:not(:disabled) {
+  border-color: var(--blue);
+}
+
+.match-card-btn:active:not(:disabled) { transform: scale(0.97); }
+
+.match-card-btn.selected {
+  border-color: var(--blue);
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.match-card-btn.correct {
+  border-color: var(--green);
+  background: var(--green-dim);
+  color: var(--green);
+  opacity: 0.55;
+}
+
+.match-card-btn.wrong {
+  border-color: var(--red);
+  background: var(--red-dim);
+  color: var(--red);
+  animation: shake 0.32s ease;
+}
+
+.match-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  margin: 18px 0 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@media (max-width: 480px) {
+  .match-card-btn { font-size: 0.85rem; padding: 12px 8px; min-height: 48px; }
+}
+
 .score-block {
   display: flex;
   align-items: center;
@@ -472,6 +603,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stamp, .icon-btn.recording { animation: none; }
+  .stamp, .icon-btn.recording, .match-card-btn.wrong { animation: none; }
   * { transition: none !important; }
 }
