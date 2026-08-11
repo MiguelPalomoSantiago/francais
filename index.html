@@ -35,13 +35,10 @@
       </div>
     </header>
 
-    <div class="mode-strip" id="modeStrip">
-      <span class="mode-pill" data-mode="es-fr">🇪🇸→🇫🇷 Palabra</span>
-      <span class="mode-pill" data-mode="fr-es">🇫🇷→🇪🇸 Palabra</span>
-      <span class="mode-pill" data-mode="conjugate">✎ Conjugación</span>
-      <span class="mode-pill" data-mode="phrase-es-fr">🇪🇸→🇫🇷 Frase</span>
-      <span class="mode-pill" data-mode="phrase-fr-es">🇫🇷→🇪🇸 Frase</span>
-    </div>
+    <nav class="view-tabs" aria-label="Vista">
+      <button type="button" class="view-tab" data-view="practice" aria-pressed="true">✏️ Practicar</button>
+      <button type="button" class="view-tab" data-view="match" aria-pressed="false">🧩 Emparejar</button>
+    </nav>
 
     <div class="data-source" id="dataSource">
       <p class="data-source-status" id="dataSourceStatus">Cargando datos…</p>
@@ -52,53 +49,86 @@
       </div>
     </div>
 
-    <!-- Exercise card -->
-    <main class="card" id="exerciseCard">
+    <!-- ============== VISTA: PRACTICAR ============== -->
+    <section class="view" id="practiceView">
 
-      <div class="card-top">
-        <span class="level-flag" id="itemLevel">A1</span>
-        <span class="tense-flag" id="itemTense" hidden></span>
+      <div class="mode-strip" id="modeStrip">
+        <span class="mode-pill" data-mode="es-fr">🇪🇸→🇫🇷 Palabra</span>
+        <span class="mode-pill" data-mode="fr-es">🇫🇷→🇪🇸 Palabra</span>
+        <span class="mode-pill" data-mode="conjugate">✎ Conjugación</span>
+        <span class="mode-pill" data-mode="phrase-es-fr">🇪🇸→🇫🇷 Frase</span>
+        <span class="mode-pill" data-mode="phrase-fr-es">🇫🇷→🇪🇸 Frase</span>
       </div>
 
-      <div class="prompt" id="promptZone">
-        <p class="prompt-hint" id="promptHint">Traduce al francés</p>
-        <p class="prompt-word" id="promptWord">bonjour</p>
-        <p class="prompt-context" id="promptContext" hidden></p>
-      </div>
+      <!-- Exercise card -->
+      <main class="card" id="exerciseCard">
 
-      <form class="answer-form" id="answerForm" autocomplete="off">
-        <div class="input-row">
-          <input
-            type="text"
-            id="answerInput"
-            class="answer-input"
-            placeholder="Escribe tu respuesta aquí…"
-            aria-label="Tu respuesta"
-          >
-          <button type="button" class="icon-btn mic-btn" id="micBtn" title="Escuchar pronunciación / grabar" hidden>
-            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-              <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/>
-              <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H9a1 1 0 0 0 0 2h6a1 1 0 0 0 0-2h-2v-2.08A7 7 0 0 0 19 11z" fill="currentColor"/>
-            </svg>
-          </button>
+        <div class="card-top">
+          <span class="level-flag" id="itemLevel">A1</span>
+          <span class="tense-flag" id="itemTense" hidden></span>
         </div>
-        <button type="submit" class="btn-submit" id="submitBtn">Comprobar</button>
-      </form>
 
-      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+        <div class="prompt" id="promptZone">
+          <p class="prompt-hint" id="promptHint">Traduce al francés</p>
+          <p class="prompt-word" id="promptWord">bonjour</p>
+          <p class="prompt-context" id="promptContext" hidden></p>
+        </div>
 
-      <!-- Passport-stamp style feedback -->
-      <div class="stamp stamp-correct" id="stampCorrect" hidden>Correct !</div>
-      <div class="stamp stamp-wrong" id="stampWrong" hidden>Réessaie</div>
+        <form class="answer-form" id="answerForm" autocomplete="off">
+          <div class="input-row">
+            <input
+              type="text"
+              id="answerInput"
+              class="answer-input"
+              placeholder="Escribe tu respuesta aquí…"
+              aria-label="Tu respuesta"
+            >
+            <button type="button" class="icon-btn mic-btn" id="micBtn" title="Escuchar pronunciación / grabar" hidden>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/>
+                <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H9a1 1 0 0 0 0 2h6a1 1 0 0 0 0-2h-2v-2.08A7 7 0 0 0 19 11z" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <button type="submit" class="btn-submit" id="submitBtn">Comprobar</button>
+        </form>
 
-      <div class="card-actions">
-        <button type="button" class="btn-ghost" id="listenBtn" hidden>
-          🔊 Escuchar pronunciación
-        </button>
-        <button type="button" class="btn-next" id="nextBtn" hidden>Siguiente ejercicio →</button>
-      </div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
 
-    </main>
+        <!-- Passport-stamp style feedback -->
+        <div class="stamp stamp-correct" id="stampCorrect" hidden>Correct !</div>
+        <div class="stamp stamp-wrong" id="stampWrong" hidden>Réessaie</div>
+
+        <div class="card-actions">
+          <button type="button" class="btn-ghost" id="listenBtn" hidden>
+            🔊 Escuchar pronunciación
+          </button>
+          <button type="button" class="btn-next" id="nextBtn" hidden>Siguiente ejercicio →</button>
+        </div>
+
+      </main>
+    </section>
+
+    <!-- ============== VISTA: EMPAREJAR ============== -->
+    <section class="view" id="matchView" hidden>
+      <main class="card match-card">
+        <div class="match-top">
+          <p class="prompt-hint">Toca una palabra en español y su pareja en francés</p>
+          <span class="match-progress" id="matchProgress">0 / 5 parejas</span>
+        </div>
+
+        <div class="match-grid">
+          <div class="match-col" id="matchColEs" aria-label="Español"></div>
+          <div class="match-col" id="matchColFr" aria-label="Francés"></div>
+        </div>
+
+        <p class="match-note">Las palabras en las que fallas aparecerán más a menudo; las que dominas, cada vez menos.</p>
+
+        <div class="card-actions">
+          <button type="button" class="btn-next" id="matchNextRoundBtn" hidden>Nueva ronda →</button>
+        </div>
+      </main>
+    </section>
 
     <footer class="page-footer">
       <p id="supportNote"></p>
